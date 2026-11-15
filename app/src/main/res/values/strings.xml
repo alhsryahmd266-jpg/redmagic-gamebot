@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_desc">يسمح للتطبيق بتنفيذ اللمسات (الحركة والتصويب والإطلاق) داخل لعبتك فقط. لا يقرأ محتوى أي تطبيق.</string>
+</resources>
