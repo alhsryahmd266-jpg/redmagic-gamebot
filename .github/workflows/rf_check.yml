@@ -1,0 +1,56 @@
+name: Roboflow check
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe Roboflow
+        env:
+          KA: ${{ secrets.RF_KEY_A }}
+          KB: ${{ secrets.RF_KEY_B }}
+        run: |
+          python3 - << 'PY' > /tmp/rf.txt 2>&1 || true
+          import os, json, urllib.request, urllib.error
+          def get(u):
+              try:
+                  with urllib.request.urlopen(u, timeout=40) as r:
+                      return r.status, json.loads(r.read().decode())
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode()[:160]
+              except Exception as e:
+                  return -1, str(e)[:160]
+          good = None
+          for n in ("A", "B"):
+              k = os.environ["K" + n]
+              s, d = get("https://api.roboflow.com/?api_key=" + k)
+              print("key", n, "->", s, (d.get("workspace") if s == 200 and isinstance(d, dict) else ""))
+              if s == 200 and good is None:
+                  good = (n, k)
+          if not good:
+              print("NO VALID KEY")
+          else:
+              k = good[1]
+              print("using key", good[0])
+              for ws, pj in [("fortnite-ai-aim", "cod-mw-warzone-catlb"), ("kolly-ku5ew", "cod-mw-warzone"), ("sky2506", "cod-mw-warzone-zixmg")]:
+                  s, d = get("https://api.roboflow.com/%s/%s?api_key=%s" % (ws, pj, k))
+                  if s != 200:
+                      print(ws, pj, "->", s, d if isinstance(d, str) else "")
+                      continue
+                  p = d.get("project", {})
+                  print(ws, pj, "classes:", p.get("classes"), "images:", p.get("images"), "license:", p.get("license"), "type:", p.get("type"))
+                  print("   versions:", [(v.get("id"), v.get("images")) for v in d.get("versions", [])][-3:])
+          PY
+          cat /tmp/rf.txt
+      - name: Publish result
+        if: always()
+        run: |
+          git config user.name gh-actions && git config user.email actions@github.com
+          git checkout --orphan ci-logs
+          git rm -rf --cached . > /dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp /tmp/rf.txt rf_check.txt
+          git add rf_check.txt && git commit -q -m "roboflow check"
+          git push -f origin ci-logs
