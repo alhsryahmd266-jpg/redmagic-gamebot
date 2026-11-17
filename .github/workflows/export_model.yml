@@ -1,0 +1,82 @@
+name: Validate + export detector
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install
+        run: |
+          python -m pip install -q -U pip
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q ultralytics onnx onnxruntime onnxslim pillow numpy pyyaml
+          echo "== versions ==" | tee /tmp/report.txt
+          python -c "import ultralytics,torch;print('ultralytics',ultralytics.__version__,'torch',torch.__version__)" | tee -a /tmp/report.txt
+      - name: Prepare dataset
+        run: |
+          mkdir -p /tmp/ds && unzip -q training/dataset.zip -d /tmp/ds
+          python - << 'PY'
+          import yaml
+          y = yaml.safe_load(open('/tmp/ds/data.yaml'))
+          y['path'] = '/tmp/ds'; y['train'] = 'train/images'; y['val'] = 'valid/images'; y['test'] = 'test/images'
+          yaml.safe_dump(y, open('/tmp/ds/data_fixed.yaml', 'w'))
+          print('names:', y.get('names'))
+          PY
+      - name: Validate the uploaded weights
+        run: |
+          echo "== YOLO val (valid split) ==" | tee -a /tmp/report.txt
+          yolo detect val model=training/best.pt data=/tmp/ds/data_fixed.yaml imgsz=640 split=val plots=False device=cpu 2>&1 | tail -12 | tee -a /tmp/report.txt
+          echo "== YOLO val (test split) ==" | tee -a /tmp/report.txt
+          yolo detect val model=training/best.pt data=/tmp/ds/data_fixed.yaml imgsz=640 split=test plots=False device=cpu 2>&1 | tail -8 | tee -a /tmp/report.txt
+      - name: Export ONNX
+        run: |
+          python - << 'PY' 2>&1 | tail -15 | tee -a /tmp/report.txt
+          from ultralytics import YOLO
+          import shutil
+          for sz in (640, 480):
+              p = YOLO('training/best.pt').export(format='onnx', imgsz=sz, simplify=True, opset=12)
+              shutil.copy(p, f'/tmp/enemy_{sz}.onnx')
+              print('exported', sz, p)
+          PY
+      - name: Check the decoder on validation images
+        run: |
+          for sz in 640 480; do python training/check_decode.py /tmp/enemy_$sz.onnx $sz /tmp/ds 2>&1 | tee -a /tmp/report.txt; done
+      - name: Try TFLite export (best effort)
+        continue-on-error: true
+        run: |
+          pip install -q tensorflow-cpu tf_keras onnx2tf onnx_graphsurgeon sng4onnx ai-edge-litert 2>&1 | tail -2
+          python - << 'PY' 2>&1 | tail -12 | tee -a /tmp/report.txt
+          from ultralytics import YOLO
+          import glob, shutil
+          p = YOLO('training/best.pt').export(format='tflite', imgsz=640, half=True)
+          print('tflite exported:', p)
+          for f in glob.glob('**/*float16.tflite', recursive=True) + glob.glob('**/best*.tflite', recursive=True):
+              shutil.copy(f, '/tmp/enemy_640_fp16.tflite'); print('copied', f); break
+          PY
+      - name: Publish model release
+        if: always()
+        run: |
+          mkdir -p /tmp/rel && cp /tmp/enemy_*.onnx /tmp/enemy_*.tflite /tmp/rel/ 2>/dev/null || true
+          cp /tmp/report.txt /tmp/rel/report.txt 2>/dev/null || true
+          ls -la /tmp/rel | tee -a /tmp/report.txt
+      - uses: softprops/action-gh-release@v2
+        if: always()
+        with:
+          tag_name: model-latest
+          name: Detector model (latest)
+          files: /tmp/rel/*
+      - name: Publish report
+        if: always()
+        run: |
+          git config user.name gh-actions && git config user.email actions@github.com
+          git checkout --orphan ci-logs
+          git rm -rf --cached . > /dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp /tmp/report.txt export_report.txt
+          git add export_report.txt && git commit -q -m "export report"
+          git push -f origin ci-logs
