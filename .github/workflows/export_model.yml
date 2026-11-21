@@ -19,20 +19,25 @@ jobs:
           python -c "import ultralytics,torch;print('ultralytics',ultralytics.__version__,'torch',torch.__version__)" | tee -a /tmp/report.txt
       - name: Prepare dataset
         run: |
-          mkdir -p /tmp/ds && unzip -q training/dataset.zip -d /tmp/ds
-          python - << 'PY'
-          import yaml
-          y = yaml.safe_load(open('/tmp/ds/data.yaml'))
-          y['path'] = '/tmp/ds'; y['train'] = 'train/images'; y['val'] = 'valid/images'; y['test'] = 'test/images'
-          yaml.safe_dump(y, open('/tmp/ds/data_fixed.yaml', 'w'))
-          print('names:', y.get('names'))
+          mkdir -p /tmp/ds && unzip -q training/dataset.zip -d /tmp/ds 2>&1 | tail -3 | tee -a /tmp/report.txt || true
+          find /tmp/ds -maxdepth 2 | head -12 | tee -a /tmp/report.txt
+          export DS=$(dirname "$(find /tmp/ds -name 'data.yaml' | head -1)")
+          echo "dataset root: $DS" | tee -a /tmp/report.txt
+          echo "DS=$DS" >> "$GITHUB_ENV"
+          python - << 'PY' 2>&1 | tee -a /tmp/report.txt
+          import os, yaml
+          ds = os.environ['DS']
+          y = yaml.safe_load(open(os.path.join(ds, 'data.yaml')))
+          y['path'] = ds; y['train'] = 'train/images'; y['val'] = 'valid/images'; y['test'] = 'test/images'
+          yaml.safe_dump(y, open(os.path.join(ds, 'data_fixed.yaml'), 'w'))
+          print('names:', y.get('names'), 'nc:', y.get('nc'))
           PY
       - name: Validate the uploaded weights
         run: |
           echo "== YOLO val (valid split) ==" | tee -a /tmp/report.txt
-          yolo detect val model=training/best.pt data=/tmp/ds/data_fixed.yaml imgsz=640 split=val plots=False device=cpu 2>&1 | tail -12 | tee -a /tmp/report.txt
+          yolo detect val model=training/best.pt data=$DS/data_fixed.yaml imgsz=640 split=val plots=False device=cpu 2>&1 | tail -12 | tee -a /tmp/report.txt
           echo "== YOLO val (test split) ==" | tee -a /tmp/report.txt
-          yolo detect val model=training/best.pt data=/tmp/ds/data_fixed.yaml imgsz=640 split=test plots=False device=cpu 2>&1 | tail -8 | tee -a /tmp/report.txt
+          yolo detect val model=training/best.pt data=$DS/data_fixed.yaml imgsz=640 split=test plots=False device=cpu 2>&1 | tail -8 | tee -a /tmp/report.txt
       - name: Export ONNX
         run: |
           python - << 'PY' 2>&1 | tail -15 | tee -a /tmp/report.txt
@@ -45,7 +50,7 @@ jobs:
           PY
       - name: Check the decoder on validation images
         run: |
-          for sz in 640 480; do python training/check_decode.py /tmp/enemy_$sz.onnx $sz /tmp/ds 2>&1 | tee -a /tmp/report.txt; done
+          for sz in 640 480; do python training/check_decode.py /tmp/enemy_$sz.onnx $sz $DS 2>&1 | tee -a /tmp/report.txt; done
       - name: Try TFLite export (best effort)
         continue-on-error: true
         run: |
