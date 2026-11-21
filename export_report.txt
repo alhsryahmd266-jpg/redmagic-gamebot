@@ -1,0 +1,81 @@
+== versions ==
+Creating new Ultralytics Settings v0.0.8 file ✅ 
+View Ultralytics Settings with 'yolo settings' or at '/home/runner/.config/Ultralytics/settings.json'
+Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/usage/settings
+ultralytics 8.4.216 torch 2.15.0+cpu
+replace /tmp/ds/data.yaml? [y]es, [n]o, [A]ll, [N]one, [r]ename:  NULL
+(EOF or read error, treating as "[N]one" ...)
+/tmp/ds
+/tmp/ds/valid
+/tmp/ds/valid/images
+/tmp/ds/valid/labels
+/tmp/ds/README.roboflow.txt
+/tmp/ds/data.yaml
+/tmp/ds/test
+/tmp/ds/test/images
+/tmp/ds/test/labels
+/tmp/ds/README.dataset.txt
+/tmp/ds/train
+/tmp/ds/train/images
+dataset root: /tmp/ds
+names: ['enemy'] nc: 1
+== YOLO val (valid split) ==
+Ultralytics 8.4.216 🚀 Python-3.11.18 torch-2.15.0+cpu CPU (AMD EPYC 9V74 80-Core Processor)
+YOLO26s summary (fused): 120 layers, 9,466,728 parameters, 0 gradients, 20.8 GFLOPs
+Downloading https://ultralytics.com/assets/Arial.ttf to '/home/runner/.config/Ultralytics/Arial.ttf': 100% ━━━━━━━━━━━━ 755.1KB 21.6MB/s 0.0s
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 4321.2±978.1 MB/s, size: 95.5 KB)
+[34m[1mval: [0mScanning /tmp/ds/valid/labels... 41 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 41/41 2.7Kit/s 0.0s
+[34m[1mval: [0mNew cache created: /tmp/ds/valid/labels.cache
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 3/3 1.4s/it 4.3s
+                   all         41         43      0.768      0.461      0.533      0.206
+                     0         41         43      0.768      0.461      0.533      0.206
+Speed: 0.8ms preprocess, 99.6ms inference, 0.0ms loss, 0.2ms postprocess per image
+💡 Learn more at https://docs.ultralytics.com/modes/val
+== YOLO val (test split) ==
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 4993.7±645.3 MB/s, size: 115.6 KB)
+[34m[1mval: [0mScanning /tmp/ds/test/labels... 20 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 20/20 2.6Kit/s 0.0s
+[34m[1mval: [0mNew cache created: /tmp/ds/test/labels.cache
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 2/2 1.1s/it 2.1s
+                   all         20         21      0.769      0.476      0.639      0.258
+                     0         20         21      0.769      0.476      0.639      0.258
+Speed: 1.0ms preprocess, 100.8ms inference, 0.0ms loss, 0.2ms postprocess per image
+💡 Learn more at https://docs.ultralytics.com/modes/val
+Ultralytics 8.4.216 🚀 Python-3.11.18 torch-2.15.0+cpu CPU (AMD EPYC 9V74 80-Core Processor)
+YOLO26s summary (fused): 120 layers, 9,466,728 parameters, 0 gradients, 11.6 GFLOPs
+
+[34m[1mPyTorch:[0m starting from 'training/best.pt' with input shape (1, 3, 480, 480) BCHW and output shape(s) (1, 8, 4725) (19.4 MB)
+
+[34m[1mONNX:[0m starting export with onnx 1.23.2 opset 12...
+[34m[1mONNX:[0m slimming with onnxslim 0.1.99...
+[34m[1mONNX:[0m export success ✅ 1.1s, saved as 'training/best.onnx' (36.3 MB)
+
+Export complete (1.4s)
+Results saved to [1m/home/runner/work/redmagic-gamebot/redmagic-gamebot/training/best.onnx[0m
+Predict:         yolo predict task=detect model=training/best.onnx imgsz=480 
+Validate:        yolo val task=detect model=training/best.onnx imgsz=480  
+Visualize:       https://netron.app
+exported 480 training/best.onnx
+[0;93m2026-11-21 17:59:31.905083197 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+onnx input: images [1, 3, 640, 640]  outputs: [('output0', [1, 8, 8400])]
+size=640 images=41 gt=43 detections=38 TP=18 FN=25 FP=20 recall@0.5=0.419 precision@0.5=0.474
+[0;93m2026-11-21 17:59:37.032492971 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+onnx input: images [1, 3, 480, 480]  outputs: [('output0', [1, 8, 4725])]
+size=480 images=41 gt=43 detections=28 TP=13 FN=30 FP=15 recall@0.5=0.302 precision@0.5=0.464
+Export to tflite in the cloud with Ultralytics Platform: https://platform.ultralytics.com
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/site-packages/ultralytics/engine/model.py", line 799, in export
+    return Exporter(overrides=args, _callbacks=self.callbacks)(model=self.model)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/site-packages/ultralytics/engine/exporter.py", line 726, in __call__
+    validate_args(fmt, self.args, fmt_keys)
+  File "/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/site-packages/ultralytics/engine/exporter.py", line 549, in validate_args
+    assert format in FP16_FORMATS, f"ERROR ❌️ quantize=16 (FP16) is not supported; {hint}"
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ERROR ❌️ quantize=16 (FP16) is not supported; format='litert' supports quantize=8 (INT8), 'w8a16' (INT8 weights + INT16 activations), 'w8a32' (dynamic INT8), 32 or None (FP32). See https://docs.ultralytics.com/modes/export#quantization-options
+total 74488
+drwxr-xr-x  2 runner runner     4096 Nov 21 18:00 .
+drwxrwxrwt 14 root   root      12288 Nov 21 18:00 ..
+-rw-r--r--  1 runner runner 38086663 Nov 21 18:00 enemy_480.onnx
+-rw-r--r--  1 runner runner 38160239 Nov 21 18:00 enemy_640.onnx
+-rw-r--r--  1 runner runner     5797 Nov 21 18:00 report.txt
